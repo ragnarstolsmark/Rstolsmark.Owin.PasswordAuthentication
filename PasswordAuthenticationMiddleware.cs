@@ -12,6 +12,7 @@ namespace Rstolsmark.Owin.PasswordAuthentication {
 	public class PasswordAuthenticationMiddleware {
 		private string _hashedPassword, _realm;
 		private AppFunc next;
+		private const string AUTHHEADER = "Authorization";
 		public PasswordAuthenticationMiddleware(AppFunc next, PasswordAuthenticationOptions passwordAuthenticationOptions)
 		{
 			_hashedPassword = passwordAuthenticationOptions.HashedPassword;
@@ -21,8 +22,11 @@ namespace Rstolsmark.Owin.PasswordAuthentication {
 
 		public Task Invoke(IDictionary<string, object> environment) {
 			try{
-				var headers = environment["owin.RequestHeaders"] as IDictionary<string, string[]>;
-				var authHeader = AuthenticationHeaderValue.Parse(headers["Authorization"][0]);
+				var headers = environment["owin.RequestHeaders"] as IDictionary<string, string[]>;				
+				if(!headers.ContainsKey(AUTHHEADER)){
+					return ChallengeUser();
+				}
+				var authHeader = AuthenticationHeaderValue.Parse(headers[AUTHHEADER][0]);
 				var credentialBytes = Convert.FromBase64String(authHeader.Parameter);
 				var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':');
 				var inpassword = credentials[1];
